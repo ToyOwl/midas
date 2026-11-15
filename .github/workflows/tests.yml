@@ -1,0 +1,33 @@
+name: Tests
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: "1"
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install dependencies and package
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install --no-deps --no-build-isolation -e .
+          Copy-Item configs/example.yaml configs/default.yaml
+      - name: Offline tests
+        run: python -m pytest -q --ignore=tests/test_ablation.py
+      - name: Ablation tests in a separate process
+        run: python -m pytest -q tests/test_ablation.py
+      - name: Command line
+        run: python -m midas --help

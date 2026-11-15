@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "midas-portfolio"
+version = "0.1.0"
+description = "Μίδας — локальная аналитика портфеля, HRP и наблюдение за рисками"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.0",
+    "scipy>=1.11",
+    "requests>=2.31",
+    "PyYAML>=6.0",
+    "feedparser>=6.0",
+    "pyarrow>=15",
+    "Pillow>=11,<13",
+]
+
+[project.optional-dependencies]
+us = ["yfinance>=0.2.40"]
+dev = ["pytest>=8.0"]
+images = ["torch>=2.5,<2.9", "transformers==4.57.6", "safetensors>=0.6,<1"]
+research = ["torch>=2.5,<2.9", "tabm==0.0.3", "ngboost==0.5.11", "xgboost==3.1.2", "xgboostlss==0.6.1", "scikit-learn==1.6.1"]
+
+[project.scripts]
+midas = "portagent.cli:main"
+portagent = "portagent.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["portagent*", "midas*"]
+
+[tool.setuptools.package-data]
+"portagent.web" = ["static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

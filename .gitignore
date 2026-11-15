@@ -1,0 +1,45 @@
+# Local environments and generated Python files
+.venv*/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage*
+htmlcov/
+build/
+dist/
+
+# Local configuration, credentials and workspace notes
+/configs/default.yaml
+/configs/*.local.yaml
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+.idea/
+.vscode/
+
+# Runtime data, models, experiments and generated fixtures
+/data/
+/reports/
+/llm_runtime*/
+/fixtures/demo/
+/.demo/
+/.tmp/
+*.gguf
+*.safetensors
+*.pt
+*.pth
+*.onnx
+*.exe
+*.dll
+*.sqlite*
+*.db
+*.log
+*.tmp
+*.part
+Thumbs.db
+.DS_Store

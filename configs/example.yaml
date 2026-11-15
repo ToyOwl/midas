@@ -1,0 +1,197 @@
+# Конфигурация Μίδας. Контракт строгий: неизвестные ключи -> ошибка.
+# Переопределение LLM без правки конфига: MIDAS_LLM_ENDPOINT, MIDAS_LLM_MODEL.
+
+universe:
+  moex: [SBER, GAZP, LKOH, GMKN, ROSN, NVTK, TATN, MTSS, MGNT, PLZL]
+  us: [AAPL, MSFT, NVDA, GOOGL, AMZN, META, TSLA, JPM, XOM, JNJ]
+
+providers:
+  moex:
+    enabled: true
+    board: TQBR
+    history_days: 730
+    timeout_s: 30
+    retries: 2
+  yfinance:
+    enabled: true
+    history_days: 730
+    timeout_s: 30
+
+news:
+  rss:
+    - https://www.vedomosti.ru/rss/news
+    - https://www.kommersant.ru/RSS/news.xml
+    - https://tass.ru/rss/v2.xml
+    - https://tass.ru/rss/v2/economy.xml
+    # Англоязычные ленты (проверено 2026-11-12, UA проекта): US-имена почти
+    # не встречаются в русских лентах, без них покрытие юниверса не дотягивает
+    # до fusion.min_coverage.
+    - https://feeds.bbci.co.uk/news/business/rss.xml
+    - https://www.cnbc.com/id/100003114/device/rss/rss.html
+    - https://www.cnbc.com/id/10000664/device/rss/rss.html
+    - https://feeds.marketwatch.com/marketwatch/topstories/
+  telegram:
+    enabled: true
+    # Публичные каналы с включённым веб-превью t.me/s (проверено 2026-11-12).
+    channels: [bcs_express, alfa_investments, thebell_io]
+    pages: 1                # страниц пагинации ?before= (20 сообщений на страницу)
+  moex_sitenews:
+    enabled: true
+    lookback_hours: 72
+    limit: 100
+  lookback_hours: 72      # окно отбора RSS/ТГ/Google News (по published)
+  max_items_per_run: 200
+  # Слоты бюджета LLM, резервируемые за активом до общего добора.
+  # Фактическая квота не больше max_items_per_run / N, чтобы хвост юниверса
+  # не вытеснялся самыми шумными именами.
+  per_asset_priority: 5
+  fetch_timeout_s: 20
+  # Точечные запросы по тикеру и courts.aliases. Сбой одного запроса
+  # не роняет прогон — статус ленты пишется в отчёт.
+  google_news:
+    enabled: true
+    per_query_limit: 8
+    locales:
+      - hl: ru
+        gl: RU
+        ceid: RU:ru
+      - hl: en-US
+        gl: US
+        ceid: US:en
+
+# Арбитражные суды: живого API у kad.arbitr.ru нет — выкладка файлов оператором
+# в data/manual/courts/<date>/*.json (формат см. README), маппинг на тикеры по алиасам.
+courts:
+  enabled: true
+  aliases:
+    SBER: ["Сбербанк", "ПАО Сбербанк", "Sber"]
+    GAZP: ["Газпром", "ПАО Газпром"]
+    LKOH: ["ЛУКОЙЛ", "Лукойл"]
+    GMKN: ["Норильский никель", "Норникель"]
+    ROSN: ["Роснефть"]
+    NVTK: ["НОВАТЭК"]
+    TATN: ["Татнефть"]
+    MTSS: ["МТС"]
+    MGNT: ["Магнит"]
+    PLZL: ["Полюс"]
+    AAPL: ["Apple"]
+    MSFT: ["Microsoft"]
+    NVDA: ["Nvidia", "NVIDIA"]
+    GOOGL: ["Google", "Alphabet"]
+    AMZN: ["Amazon"]
+    META: ["Meta Platforms"]
+    TSLA: ["Tesla"]
+    JPM: ["JPMorgan"]
+    XOM: ["ExxonMobil", "Exxon"]
+    JNJ: ["Johnson & Johnson"]
+
+llm:
+  endpoint: http://127.0.0.1:8080
+  model: bonsai-2-27b
+  # Каталог, содержащий llm_runtime/ с llama-server.exe и текстовой GGUF-моделью.
+  runtime_root: .
+  timeout_s: 300
+  max_tokens: 4096
+  seed: 20261112
+  analyst_batch_size: 10
+  # Vision-модальность: любой OpenAI-совместимый VLM на loopback с image_url
+  # (llama-server+mmproj, LM Studio). Активна только при наличии скриншотов
+  # в data/manual/charts/<date>/ и живого эндпоинта; иначе модальность пропускается.
+  vision_endpoint: http://127.0.0.1:8081
+  vision_model: qwen2.5-vl-3b
+  vision_timeout_s: 120
+  # A4: согласованность двух локальных движков на одном потоке новостей.
+  # Второй движок (Qwen на 8081 работает и как текстовый). Сбой — не роняет прогон.
+  agreement:
+    enabled: false
+    endpoint: http://127.0.0.1:8081
+    model: qwen2.5-vl-3b
+
+materials:
+  embedding_python: .venv-images/Scripts/python.exe
+  embedding_model: openai/clip-vit-large-patch14
+  embedding_revision: 32bd64288804d66eefd0ccbe215aa642df71cc41
+  max_upload_mb: 12
+  max_pixels: 20000000
+  influence: 0.15
+  valid_days: 7
+
+fusion:
+  # Исторический тест модальности (reports/modality/, 2019-2026, 20 активов):
+  # linear устойчив (oracle P=74%, noise в границах шума); SNF чувствителен к
+  # качеству aux-видов (шумовой вид -> P=0% при любом k). По умолчанию linear;
+  # snf возвращать после гейта качества видов (роадмап D16).
+  method: linear            # snf (Similarity Network Fusion, нелинейно) | linear
+  w_price: 0.7             # вес ценовой модальности в linear-режиме
+  snf_neighbors: 15        # kNN-ядро SNF
+  snf_iterations: 20       # итераций кросс-диффузии
+  snf_min_quality: 0.3     # гейт: consistency вида (features/view_quality); шум 0.07, сигнал 0.7+
+  min_coverage: 0.6        # порог покрытия для подключения aux-модальности
+  min_news_per_asset: 3
+  sentiment_halflife_days: 5
+
+# Трекер редких событий:
+# только трекинг по умолчанию; overlay детерминированно режет потолок веса.
+tracker:
+  enabled: true
+  sigma_threshold: 2.5     # редкое событие = дневная доходность <= -2.5*sigma
+  window_days: 250
+  vol_halflife_days: 20
+  warn_threshold: 0.5      # граница «повышенного риска» для отчёта/критика
+  overlay: false           # true: потолок веса *= (1 - overlay_strength*score)
+  overlay_strength: 0.5
+  weights:                 # логистическая эвристика; калибровку показывает бэктест
+    p_tail: 1.0
+    vol_of_vol: 0.5
+    drawdown: 0.5
+    sentiment: 0.4
+    legal: 0.8
+    macro: 0.3             # |z макро| * |бета| к USDRUB/Brent/US10Y
+    earnings: 0.5          # отчётность в ближайшие 5 дней
+    bias: -1.6
+
+backtest:
+  rebalance_days: 21
+  commission_bps: 5.0     # 0.05% от стоимости каждой покупки/продажи; 1 bps = 0.01%
+  spread_bps: 10.0        # полный bid-ask спред 0.10%; на сделку списывается половина
+  fetch_days: 1825        # глубина истории для backtest --fetch (5 лет)
+
+# B5: дивиденды MOEX -> total return бэктеста. ISS-эндпоинта дивидендов нет —
+# ручная выкладка data/manual/dividends/*.json [{asset: "MOEX:SBER", date, value}]
+# (таблица с moex.com/эмитента). US уже честен: yfinance auto_adjust, в доходность
+# дополнительно не подмешивается.
+dividends:
+  enabled: true
+
+# B6: макро-признаки трекера (не вид расстояний): стресс = |z| * |бета актива|.
+macro:
+  enabled: true
+  usdrub_secid: USD000UTSTOM   # ISS SELT, классический код USDRUB_TOM
+  yf_series:                   # yfinance: Brent и US10Y
+    - {symbol: "BZ=F", name: brent}
+    - {symbol: "^TNX", name: ust10y}
+
+# B7: календарь отчётностей — событийный риск (флаг трекера, окно 5 дней).
+# US: yfinance earnings dates; RU: ручная выкладка data/manual/earnings/<date>/*.json.
+earnings:
+  enabled: true
+
+# A1: заморозка прогноза до события и settlement после. Прогноз immutable:
+# повторный daily того же дня не перезаписывает его при изменившихся весах.
+settlement:
+  auto: true              # daily сам закрывает pending-прогнозы после upsert истории
+  horizon_days: 5         # торговых дней после даты прогноза до definitive settle
+
+# A2: абляционная матрица кампаний (block-bootstrap CI, парное сравнение с базой).
+ablation:
+  bootstrap_reps: 500
+  block_days: 5
+
+hrp:
+  linkage: single
+  max_weight: 0.25
+  cash_share: 0.10
+
+paths:
+  data_dir: data
+  reports_dir: reports

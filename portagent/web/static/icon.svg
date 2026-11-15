@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Μίδας — золотая монограмма с короной</title>
+  <rect width="64" height="64" rx="15" fill="#181b21"/>
+  <circle cx="32" cy="33" r="25" fill="none" stroke="#eadb83" stroke-width="1.5" opacity=".55"/>
+  <path d="m20 18 3 9h18l3-9-8 4-4-9-4 9z" fill="#eadb83"/>
+  <path d="M20 47V32l12 10 12-10v15" fill="none" stroke="#eadb83" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>
